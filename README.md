@@ -6,3 +6,6 @@
 *	Request client detail's - GET
 *	Update client detail's - PUT
 *	Delete client - DELETE
+
+
+#### Unittest is done using JUnit, Mokito and MvcMock, the test can be found in the ClientControllerTest class
