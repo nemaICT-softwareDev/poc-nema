@@ -8,6 +8,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -15,6 +17,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,14 +25,21 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 
 public class ClientControllerTest {
 
+    @Autowired
+    private TestRestTemplate restTemplate;
+    @LocalServerPort
+    private int port;
 
+    private static final ObjectMapper om = new ObjectMapper();
     @Mock
     private ClientService clientService;
 
@@ -38,10 +48,14 @@ public class ClientControllerTest {
     private MockMvc mockMvc;
     private List<Client> clients = new ArrayList<>();
 
+    private String getRootUrl() {
+        return "http://localhost:" + 8080;
+    }
     @Before
     public void setup(){
         MockitoAnnotations.initMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(clientController).build();
+        restTemplate = new TestRestTemplate();
     }
 
     private List<Client> getEntityListStubData(){
@@ -93,11 +107,9 @@ public class ClientControllerTest {
     @Test
     public void createClient() throws Exception {
 
-      //given
+        //given
         Client client = new Client("Noah", "Lopes");
-
-       //when(clientController.createClient(any(Client.class))).thenReturn(client);
-       when(clientService.save(any(Client.class))).thenReturn(client);
+        when(clientService.save(any(Client.class))).thenReturn(client);
 
         //then
         mockMvc.perform(MockMvcRequestBuilders.post("/api/client")
@@ -140,7 +152,29 @@ public class ClientControllerTest {
  }
 
     @Test
-    public void updateClient() {
+    public void updateClient() throws Exception {
+
+        Long id = 1L;
+        Client client = new Client("Noah", "Lopes");
+        client.setId(id);
+
+        given(clientService.findById(id)).willReturn(Optional.of(client));
+        //given(clientService.save(any(Client.class))).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+
+       when(clientService.save(any(Client.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+       Client response = clientController.getClientById(id);
+
+        //then
+        mockMvc.perform((MockMvcRequestBuilders.put("/api/clients/{id}", client.getId()))
+                .content(om.writeValueAsString(client))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.firstname").value(client.getFirstname()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.lastname").value(client.getLastname()));
+
+
+                assertThat(response.getFirstname()).isEqualTo("Noah");
+                assertThat(response.getLastname()).isEqualTo("Lopes");
     }
 
     @Test
