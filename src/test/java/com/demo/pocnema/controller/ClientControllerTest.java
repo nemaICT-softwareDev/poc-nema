@@ -7,9 +7,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,7 +14,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +21,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -34,42 +29,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ClientControllerTest {
 
-    @Autowired
-    private TestRestTemplate restTemplate;
-    @LocalServerPort
-    private int port;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final ObjectMapper om = new ObjectMapper();
     @Mock
     private ClientService clientService;
 
     @InjectMocks
     private ClientController clientController;
+
     private MockMvc mockMvc;
     private List<Client> clients = new ArrayList<>();
 
-    private String getRootUrl() {
-        return "http://localhost:" + 8080;
-    }
+
     @Before
     public void setup(){
         MockitoAnnotations.initMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(clientController).build();
-        restTemplate = new TestRestTemplate();
-    }
-
-    private List<Client> getEntityListStubData(){
-        List<Client> list = new ArrayList<>();
-        list.add((Client) getEntityListStubData());
-        return list;
-    }
-
-    private Client getEntityStubData(){
-        Client entity = new Client();
-        entity.setId(1L);
-        entity.setFirstname("Leon");
-        entity.setLastname("Taylor");
-        return entity;
     }
 
     @Test
@@ -166,7 +141,7 @@ public class ClientControllerTest {
 
         //then
         mockMvc.perform((MockMvcRequestBuilders.put("/api/clients/{id}", client.getId()))
-                .content(om.writeValueAsString(client))
+                .content(objectMapper.writeValueAsString(client))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.firstname").value(client.getFirstname()))
